@@ -2,8 +2,8 @@ import os
 import json
 import uuid
 from flask import Flask, request, jsonify
-from flask_cors import CORS
 from werkzeug.utils import secure_filename
+from flask_cors import CORS
 from agents.parser import parse_document
 from agents.citation_checker import analyze_structure
 from agents.rule_engine import get_formatting_rules
@@ -12,11 +12,9 @@ from agents.explainer import generate_explanations
 
 app = Flask(__name__)
 CORS(app)
-
-UPLOAD_FOLDER = 'uploads'
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-ALLOWED_EXTENSIONS = {'docx', 'tex'}
+app.config['UPLOAD_FOLDER'] = 'uploads'
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+ALLOWED_EXTENSIONS = {'docx', 'tex', 'txt'}
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -24,7 +22,10 @@ def allowed_file(filename):
 def cleanup_session(session_id):
     for filename in os.listdir(app.config['UPLOAD_FOLDER']):
         if filename.startswith(session_id):
-            os.remove(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            try:
+                os.remove(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            except:
+                pass
 
 @app.route('/api/upload', methods=['POST'])
 def upload_file():
@@ -33,7 +34,7 @@ def upload_file():
     
     file = request.files['file']
     if file.filename == '' or not allowed_file(file.filename):
-        return jsonify({"error": "Invalid or missing file."}), 400
+        return jsonify({"error": "Invalid file."}), 400
 
     session_id = str(uuid.uuid4())
     ext = file.filename.rsplit('.', 1)[1].lower()
@@ -52,7 +53,7 @@ def upload_file():
         return jsonify({
             "session_id": session_id,
             "metadata": structured_data.get("metadata", {}),
-            "message": "File parsed successfully."
+            "message": "Success"
         }), 200
 
     except Exception as e:
@@ -66,7 +67,7 @@ def format_document():
     target_style = data.get('target_style')
 
     if not session_id or not target_style:
-        return jsonify({"error": "Missing session_id or target_style"}), 400
+        return jsonify({"error": "Missing parameters"}), 400
 
     state_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{session_id}.json")
     if not os.path.exists(state_path):
@@ -84,6 +85,7 @@ def format_document():
 
         return jsonify({
             "latex_code": latex_output,
+            "pdf_base64": None,
             "compliance_score": score,
             "explainable_corrections": corrections
         }), 200
