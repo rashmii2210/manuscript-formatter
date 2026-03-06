@@ -1,9 +1,9 @@
 import os
 import json
-import google.generativeai as genai
+from google import genai
 from journal_rules.rules import get_base_rules
 
-genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
+client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
 def get_formatting_rules(target_style, structured_data):
     base_rules = get_base_rules(target_style)
@@ -21,8 +21,10 @@ def get_formatting_rules(target_style, structured_data):
     """
 
     try:
-        model = genai.GenerativeModel('gemini-2.5-flash')
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=prompt,
+        )
         
         text_response = response.text.strip()
         if text_response.startswith('```json'):
@@ -31,7 +33,8 @@ def get_formatting_rules(target_style, structured_data):
             text_response = text_response[3:-3].strip()
 
         ai_rules = json.loads(text_response)
-    except Exception:
+    except Exception as e:
+        print(f"GEMINI ERROR: {e}")
         ai_rules = {
             "preamble": f"\\documentclass{{article}}\n\\usepackage{{geometry}}\n\\geometry{{margin=1in}}",
             "macros": "",
