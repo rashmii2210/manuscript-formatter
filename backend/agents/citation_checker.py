@@ -4,21 +4,17 @@ import re
 nlp = spacy.load("en_core_web_sm")
 
 def analyze_structure(raw_text):
-    # Extract original packages
-    custom_packages = re.findall(r'\\usepackage(?:\[[^\]]*\])?\{[^}]*\}', raw_text)
-    
-    clean_text = raw_text.replace("\\begin{document}", "").replace("\\end{document}", "").strip()
+    doc = nlp(raw_text)
     
     blocks = {
         "title": None,
         "abstract": None,
         "body": [],
         "citations": [],
-        "references": [],
-        "custom_packages": list(set(custom_packages))
+        "references": []
     }
     
-    paragraphs = clean_text.split('\n')
+    paragraphs = raw_text.split('\n')
     
     title_set = False
     for i, para in enumerate(paragraphs):
