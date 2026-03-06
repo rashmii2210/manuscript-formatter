@@ -1,9 +1,12 @@
 import os
 import json
 import uuid
+import re
+import traceback
 from flask import Flask, request, jsonify
 from werkzeug.utils import secure_filename
 from flask_cors import CORS
+
 from agents.parser import parse_document
 from agents.citation_checker import analyze_structure
 from agents.rule_engine import get_formatting_rules
@@ -46,6 +49,15 @@ def upload_file():
         raw_text = parse_document(filepath, ext, session_id, app.config['UPLOAD_FOLDER'])
         structured_data = analyze_structure(raw_text)
         
+        # SAFELY EXTRACT CUSTOM PACKAGES HERE
+        if ext == 'tex':
+            with open(filepath, 'r', encoding='utf-8') as f:
+                full_tex = f.read()
+            packages = list(set(re.findall(r'\\usepackage(?:\[[^\]]*\])?\{[^}]*\}', full_tex)))
+            structured_data['custom_packages'] = packages
+        else:
+            structured_data['custom_packages'] = []
+        
         state_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{session_id}.json")
         with open(state_path, 'w') as f:
             json.dump(structured_data, f)
@@ -58,6 +70,7 @@ def upload_file():
 
     except Exception as e:
         cleanup_session(session_id)
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/format', methods=['POST'])
@@ -92,6 +105,7 @@ def format_document():
 
     except Exception as e:
         cleanup_session(session_id)
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':

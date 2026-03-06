@@ -1,18 +1,31 @@
 import re
 
+def fix_linguistic_notation(text):
+    # 1. Fix missing $ for subscripts (e.g., John_i -> $John_i$, ngii_i -> $ngii_i$)
+    # This matches any word immediately followed by an underscore and an index
+    text = re.sub(r'(?<!\$)\b([a-zA-Z]+_[a-zA-Z0-9]+)\b(?!\$)', r'$\1$', text)
+    
+    # 2. Clean up misplaced tabs and spaces around alignment ampersands
+    # This enforces clean, readable tab spacing in the raw LaTeX code
+    text = re.sub(r'[ \t]*&[ \t]*', '\t&\t', text)
+    
+    return text
+
 def build_latex(rules, structured_data):
     latex_parts = []
     
+    # 1. Add Preamble
     latex_parts.append(rules.get("preamble", "\\documentclass{article}"))
     
-    # Inject the preserved packages right before begin{document}
-    if structured_data.get("custom_packages"):
-        latex_parts.append("\n% --- Original Custom Packages ---")
-        for pkg in structured_data["custom_packages"]:
-            if "geometry" not in pkg and "inputenc" not in pkg: # Avoid conflicts
-                latex_parts.append(pkg)
-        latex_parts.append("")
+    # 2. Re-inject Custom Packages
+    custom_packages = structured_data.get("custom_packages", [])
+    if custom_packages:
+        latex_parts.append("\n% --- Preserved Custom Packages ---")
+        for pkg in custom_packages:
+            latex_parts.append(pkg)
+        latex_parts.append("% ---------------------------------\n")
         
+    # 3. Start Document
     latex_parts.append("\\begin{document}\n")
     
     raw_title = structured_data.get("title", "")
@@ -26,8 +39,10 @@ def build_latex(rules, structured_data):
         latex_parts.append(structured_data["abstract"])
         latex_parts.append("\\end{abstract}\n")
     
+    # 4. Inject Body Text (with linguistic fixes applied!)
     for para in structured_data.get("body", []):
-        latex_parts.append(f"{para}\n")
+        clean_para = fix_linguistic_notation(para)
+        latex_parts.append(f"{clean_para}\n")
         
     latex_parts.append("\\end{document}")
     

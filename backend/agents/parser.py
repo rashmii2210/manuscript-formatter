@@ -1,7 +1,8 @@
 import docx
-from TexSoup import TexSoup
 import zipfile
 import os
+import re
+from TexSoup import TexSoup
 
 def parse_document(filepath, ext, session_id, upload_folder):
     if ext == 'docx':
@@ -19,7 +20,17 @@ def parse_document(filepath, ext, session_id, upload_folder):
     
     elif ext == 'tex':
         with open(filepath, 'r', encoding='utf-8') as f:
-            soup = TexSoup(f)
-            return str(soup.document) if soup.document else ""
+            raw_content = f.read()
+            
+        clean_content = re.sub(r'(?<!\\)%.*', '', raw_content)
+        
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(clean_content)
+            
+        try:
+            soup = TexSoup(clean_content)
+            return "".join(soup.document.text) if soup.document else clean_content
+        except:
+            return clean_content
             
     raise ValueError("Unsupported file type")
