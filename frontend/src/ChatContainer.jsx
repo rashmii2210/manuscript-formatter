@@ -20,7 +20,6 @@ export default function ChatContainer() {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Read local file for the "Original Document" preview tab (works best for .tex/.txt)
     let originalText = "Preview only available for raw .tex or .txt uploads.";
     if (file.name.endsWith('.tex') || file.name.endsWith('.txt')) {
        originalText = await file.text();
@@ -30,26 +29,23 @@ export default function ChatContainer() {
     setIsProcessing(true);
 
     try {
-      // 1. Upload file and get session ID
       const uploadResult = await uploadFile(file);
       const sessionId = uploadResult.session_id;
 
-      // 2. Pass session ID to formatting engine
       const formatResult = await formatText(sessionId, selectedStyle);
 
       setActiveDocument({
         original: originalText,
         transformed: formatResult.latex_code,
-        downloadUrl: '#' // Handled natively by blob in ArtifactViewer
+        pdfData: formatResult.pdf_base64,
+        downloadUrl: '#'
       });
       setComplianceScore(formatResult.compliance_score || 0);
       
-      // Extract the AI explanations for the chat response
       const correctionReasons = formatResult.explainable_corrections.map(c => c.reason).join("; ");
       addMessage({ role: 'agent', content: `I have applied ${selectedStyle} formatting. Key changes: ${correctionReasons}` });
       
     } catch (error) {
-      console.error(error);
       addMessage({ role: 'agent', content: 'An error occurred while communicating with the formatting server.' });
     } finally {
       setIsProcessing(false);
@@ -66,7 +62,6 @@ export default function ChatContainer() {
     setIsProcessing(true);
     
     try {
-      // Trick: Convert text into a file object so the backend parser accepts it natively
       const textFile = new File([userText], "prompt.tex", { type: "text/plain" });
       
       const uploadResult = await uploadFile(textFile);
@@ -75,13 +70,13 @@ export default function ChatContainer() {
       setActiveDocument({
         original: userText,
         transformed: formatResult.latex_code,
+        pdfData: formatResult.pdf_base64,
         downloadUrl: '#'
       });
       setComplianceScore(formatResult.compliance_score || 0);
       addMessage({ role: 'agent', content: `I have formatted your text to match ${selectedStyle} guidelines.` });
       
     } catch (error) {
-      console.error(error);
       addMessage({ role: 'agent', content: 'An error occurred while formatting the text.' });
     } finally {
       setIsProcessing(false);
@@ -90,7 +85,6 @@ export default function ChatContainer() {
 
   return (
     <div className="flex flex-col w-full h-full bg-white overflow-hidden">
-      
       <div className="flex-1 overflow-y-auto p-4 space-y-6 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-thumb]:rounded-full">
         {chatHistory.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-4">
