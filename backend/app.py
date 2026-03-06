@@ -2,6 +2,7 @@ import os
 import json
 import uuid
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from werkzeug.utils import secure_filename
 from agents.parser import parse_document
 from agents.citation_checker import analyze_structure
@@ -10,6 +11,8 @@ from agents.formatter import build_latex
 from agents.explainer import generate_explanations
 
 app = Flask(__name__)
+CORS(app)
+
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER

@@ -5,7 +5,6 @@ import { uploadFile, formatText } from './api';
 export default function ChatContainer() {
   const [input, setInput] = useState('');
   
-  // Destructure state and actions from the global Zustand store
   const { 
     chatHistory, 
     addMessage, 
@@ -17,38 +16,46 @@ export default function ChatContainer() {
     setSelectedStyle
   } = useStore();
 
-  /**
-   * Handles physical file selection, sends to dummy upload API, 
-   * and subsequently sends the extracted text to the formatting API.
-   */
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
+    // Read local file for the "Original Document" preview tab (works best for .tex/.txt)
+    let originalText = "Preview only available for raw .tex or .txt uploads.";
+    if (file.name.endsWith('.tex') || file.name.endsWith('.txt')) {
+       originalText = await file.text();
+    }
 
     addMessage({ role: 'user', content: `Uploaded document: ${file.name}` });
     setIsProcessing(true);
 
     try {
+      // 1. Upload file and get session ID
       const uploadResult = await uploadFile(file);
-      const formatResult = await formatText(uploadResult.raw_text, selectedStyle);
+      const sessionId = uploadResult.session_id;
+
+      // 2. Pass session ID to formatting engine
+      const formatResult = await formatText(sessionId, selectedStyle);
 
       setActiveDocument({
-        original: uploadResult.raw_text,
-        transformed: formatResult.formatted_text,
-        downloadUrl: formatResult.download_url
+        original: originalText,
+        transformed: formatResult.latex_code,
+        downloadUrl: '#' // Handled natively by blob in ArtifactViewer
       });
       setComplianceScore(formatResult.compliance_score || 0);
-      addMessage({ role: 'agent', content: `I have analyzed and reformatted your document to match ${selectedStyle} guidelines.` });
+      
+      // Extract the AI explanations for the chat response
+      const correctionReasons = formatResult.explainable_corrections.map(c => c.reason).join("; ");
+      addMessage({ role: 'agent', content: `I have applied ${selectedStyle} formatting. Key changes: ${correctionReasons}` });
+      
     } catch (error) {
-      addMessage({ role: 'agent', content: 'An error occurred while processing the document.' });
+      console.error(error);
+      addMessage({ role: 'agent', content: 'An error occurred while communicating with the formatting server.' });
     } finally {
       setIsProcessing(false);
     }
   };
 
-  /**
-   * Handles text prompt submission from the chat input.
-   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!input.trim() || isProcessing) return;
@@ -59,16 +66,22 @@ export default function ChatContainer() {
     setIsProcessing(true);
     
     try {
-      const formatResult = await formatText(userText, selectedStyle);
+      // Trick: Convert text into a file object so the backend parser accepts it natively
+      const textFile = new File([userText], "prompt.tex", { type: "text/plain" });
+      
+      const uploadResult = await uploadFile(textFile);
+      const formatResult = await formatText(uploadResult.session_id, selectedStyle);
       
       setActiveDocument({
         original: userText,
-        transformed: formatResult.formatted_text,
-        downloadUrl: formatResult.download_url
+        transformed: formatResult.latex_code,
+        downloadUrl: '#'
       });
       setComplianceScore(formatResult.compliance_score || 0);
-      addMessage({ role: 'agent', content: `I have applied the requested ${selectedStyle} formatting.` });
+      addMessage({ role: 'agent', content: `I have formatted your text to match ${selectedStyle} guidelines.` });
+      
     } catch (error) {
+      console.error(error);
       addMessage({ role: 'agent', content: 'An error occurred while formatting the text.' });
     } finally {
       setIsProcessing(false);
@@ -78,17 +91,13 @@ export default function ChatContainer() {
   return (
     <div className="flex flex-col w-full h-full bg-white overflow-hidden">
       
-      {/* Chat History Area - styled with custom webkit scrollbars for a clean look */}
       <div className="flex-1 overflow-y-auto p-4 space-y-6 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-thumb]:rounded-full">
-        
-        {/* Empty State */}
         {chatHistory.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-4">
             <p>Upload a manuscript or type a prompt to begin.</p>
           </div>
         )}
         
-        {/* Render Messages */}
         {chatHistory.map((msg, i) => (
           <div key={i} className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[85%] p-3 rounded-2xl ${
@@ -101,7 +110,6 @@ export default function ChatContainer() {
           </div>
         ))}
         
-        {/* Loading Bubble Animation */}
         {isProcessing && (
           <div className="flex w-full justify-start">
             <div className="max-w-[85%] p-4 rounded-2xl bg-gray-100 rounded-bl-none flex gap-1.5 items-center shadow-sm">
@@ -113,10 +121,7 @@ export default function ChatContainer() {
         )}
       </div>
       
-      {/* Input Area */}
       <div className="p-4 bg-white border-t border-gray-100 flex flex-col gap-2 z-10 relative">
-        
-        {/* Style Selector Dropdown */}
         <div className="flex items-center gap-2">
           <label htmlFor="style-select" className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Target Style:</label>
           <select 
@@ -134,10 +139,7 @@ export default function ChatContainer() {
           </select>
         </div>
 
-        {/* Input Form */}
         <form onSubmit={handleSubmit} className={`flex items-end gap-2 bg-gray-50 p-2 rounded-2xl border border-gray-300 transition-all ${isProcessing ? 'opacity-70' : 'focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-400/20'}`}>
-          
-          {/* File Upload Button */}
           <label aria-label="Upload File" className="p-2 text-gray-400 hover:text-gray-600 cursor-pointer rounded-full hover:bg-gray-200 transition-colors mb-1">
             <input 
               type="file" 
@@ -151,7 +153,6 @@ export default function ChatContainer() {
             </svg>
           </label>
           
-          {/* Text Input Area */}
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -160,7 +161,6 @@ export default function ChatContainer() {
             placeholder="Upload a document or type instructions..."
             rows={1}
             onKeyDown={(e) => {
-              // Submit on Enter, allow multiline on Shift+Enter
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 handleSubmit(e);
@@ -168,7 +168,6 @@ export default function ChatContainer() {
             }}
           />
           
-          {/* Submit Button */}
           <button type="submit" aria-label="Send Message" disabled={isProcessing || !input.trim()} className="p-2 mb-1 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed transition-colors">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
