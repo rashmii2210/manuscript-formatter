@@ -39,7 +39,7 @@ def upload_file():
     file.save(filepath)
 
     try:
-        raw_text = parse_document(filepath, ext)
+        raw_text = parse_document(filepath, ext, session_id, app.config['UPLOAD_FOLDER'])
         structured_data = analyze_structure(raw_text)
         
         state_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{session_id}.json")
