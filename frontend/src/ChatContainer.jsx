@@ -7,10 +7,12 @@ export default function ChatContainer() {
   const { 
     chatHistory, 
     addMessage, 
+    isProcessing,
     setIsProcessing, 
     setActiveDocument, 
     setComplianceScore,
-    selectedStyle
+    selectedStyle,
+    setSelectedStyle
   } = useStore();
 
   const handleFileUpload = async (e) => {
@@ -30,7 +32,7 @@ export default function ChatContainer() {
         downloadUrl: formatResult.download_url
       });
       setComplianceScore(formatResult.compliance_score || 0);
-      addMessage({ role: 'agent', content: 'I have analyzed and reformatted your document.' });
+      addMessage({ role: 'agent', content: `I have analyzed and reformatted your document to match ${selectedStyle} guidelines.` });
     } catch (error) {
       addMessage({ role: 'agent', content: 'An error occurred while processing the document.' });
     } finally {
@@ -56,7 +58,7 @@ export default function ChatContainer() {
         downloadUrl: formatResult.download_url
       });
       setComplianceScore(formatResult.compliance_score || 0);
-      addMessage({ role: 'agent', content: 'I have applied the requested formatting.' });
+      addMessage({ role: 'agent', content: `I have applied the requested ${selectedStyle} formatting.` });
     } catch (error) {
       addMessage({ role: 'agent', content: 'An error occurred while formatting the text.' });
     } finally {
@@ -68,10 +70,11 @@ export default function ChatContainer() {
     <div className="flex flex-col w-full h-full bg-white overflow-hidden">
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
         {chatHistory.length === 0 && (
-          <div className="flex items-center justify-center h-full text-gray-400">
-            Upload a manuscript or type a prompt to begin.
+          <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-4">
+            <p>Upload a manuscript or type a prompt to begin.</p>
           </div>
         )}
+        
         {chatHistory.map((msg, i) => (
           <div key={i} className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[85%] p-3 rounded-2xl ${
@@ -83,15 +86,40 @@ export default function ChatContainer() {
             </div>
           </div>
         ))}
+        
+        {isProcessing && (
+          <div className="flex w-full justify-start">
+            <div className="max-w-[85%] p-4 rounded-2xl bg-gray-100 rounded-bl-none flex gap-1.5 items-center">
+              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+            </div>
+          </div>
+        )}
       </div>
       
-      <div className="p-4 bg-white border-t border-gray-100">
+      <div className="p-4 bg-white border-t border-gray-100 flex flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Target Style:</span>
+          <select 
+            value={selectedStyle}
+            onChange={(e) => setSelectedStyle(e.target.value)}
+            className="text-sm bg-gray-50 border border-gray-200 rounded-md px-2 py-1 text-gray-700 outline-none focus:border-blue-400"
+          >
+            <option value="APA">APA 7th Edition</option>
+            <option value="IEEE">IEEE</option>
+            <option value="MLA">MLA 9th Edition</option>
+            <option value="Chicago">Chicago Manual of Style</option>
+            <option value="Nature">Nature Journal</option>
+          </select>
+        </div>
+
         <form onSubmit={handleSubmit} className="flex items-end gap-2 bg-gray-50 p-2 rounded-2xl border border-gray-300 focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-blue-400 transition-all">
           <label className="p-2 text-gray-400 hover:text-gray-600 cursor-pointer rounded-full hover:bg-gray-200 transition-colors mb-1">
             <input 
               type="file" 
               className="hidden" 
-              accept=".docx,.pdf,.txt" 
+              accept=".tex,.docx,.pdf,.txt" 
               onChange={handleFileUpload} 
             />
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -111,7 +139,7 @@ export default function ChatContainer() {
               }
             }}
           />
-          <button type="submit" className="p-2 mb-1 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors">
+          <button type="submit" disabled={isProcessing} className="p-2 mb-1 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:bg-blue-300 transition-colors">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
             </svg>

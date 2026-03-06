@@ -11,9 +11,16 @@ export default function ArtifactViewer() {
   if (!activeDocument) return null;
 
   const handleExport = () => {
-    if (activeDocument.downloadUrl) {
-      window.location.href = activeDocument.downloadUrl;
-    }
+    const textToExport = tab === 'original' ? activeDocument.original : activeDocument.transformed;
+    const blob = new Blob([textToExport], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `manuscript_${tab}.tex`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const currentText = tab === 'original' ? activeDocument.original : activeDocument.transformed;
@@ -72,17 +79,12 @@ export default function ArtifactViewer() {
             
             <button 
               onClick={handleExport}
-              disabled={!activeDocument.downloadUrl}
-              className={`flex items-center gap-2 px-4 py-1.5 text-sm font-medium rounded-lg transition-colors shadow-sm ${
-                activeDocument.downloadUrl 
-                  ? 'bg-gray-900 text-white hover:bg-gray-800' 
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              }`}
+              className="flex items-center gap-2 px-4 py-1.5 text-sm font-medium rounded-lg transition-colors shadow-sm bg-gray-900 text-white hover:bg-gray-800"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
               </svg>
-              Export .docx
+              Export .tex
             </button>
           </div>
         </div>
