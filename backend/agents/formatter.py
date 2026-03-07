@@ -8,10 +8,7 @@ def fix_linguistic_notation(text):
 def build_latex(rules, structured_data):
     latex_parts = []
     
-    # 1. Add Preamble
     preamble = rules.get("preamble", "\\documentclass{article}")
-    
-    # SAFEGUARD: Unpack if the AI generated a nested dict or list instead of a string
     if isinstance(preamble, dict):
         preamble = "\n".join(str(v) for v in preamble.values())
     elif isinstance(preamble, list):
@@ -21,33 +18,97 @@ def build_latex(rules, structured_data):
         
     latex_parts.append(preamble)
     
-    # 2. Re-inject Custom Packages
+    # Inject Macros if available
+    macros = rules.get("macros", "")
+    if macros:
+        latex_parts.append(str(macros))
+    
     custom_packages = structured_data.get("custom_packages", [])
     if custom_packages:
-        latex_parts.append("\n% --- Preserved Custom Packages ---")
-        for pkg in custom_packages:
-            latex_parts.append(pkg)
-        latex_parts.append("% ---------------------------------\n")
+        latex_parts.extend(custom_packages)
+
+    title_raw = structured_data.get("title", structured_data.get("document_title", "Untitled Document"))
+    title = re.sub(r'\\(?:section|subsection|chapter)\*?\{(.*?)\}', r'\1', title_raw)
+    abstract = structured_data.get("abstract", "")
+    
+    # Detect formatting style based on preamble signatures
+    is_apa = "apa7" in preamble
+    is_ieee = "IEEEtran" in preamble
+    is_chicago = "biblatex-chicago" in preamble
+    is_mla = "style=mla" in preamble
+    is_nature = "naturemag" in preamble or "nature uses superscript" in preamble.lower()
+
+    # --- Document Frontmatter ---
+    if is_apa:
+        latex_parts.append(f"\\title{{{title}}}")
+        latex_parts.append("\\shorttitle{Running Head}")
+        latex_parts.append("\\author{Author Name}")
+        latex_parts.append("\\affiliation{Institution}")
+        if abstract:
+            latex_parts.append(f"\\abstract{{{abstract}}}")
+        latex_parts.append("\\begin{document}")
+        latex_parts.append("\\maketitle")
         
-    # 3. Start Document
-    latex_parts.append("\\begin{document}\n")
+    elif is_ieee:
+        latex_parts.append("\\begin{document}")
+        latex_parts.append(f"\\title{{{title}}}")
+        latex_parts.append("\\author{\\IEEEauthorblockN{Author Name}\n\\IEEEauthorblockA{Institution}}")
+        latex_parts.append("\\maketitle")
+        if abstract:
+            latex_parts.append("\\begin{abstract}")
+            latex_parts.append(abstract)
+            latex_parts.append("\\end{abstract}")
+            
+    elif is_chicago:
+        latex_parts.append("\\begin{document}")
+        # Chicago uses the custom title macro defined in your rules.py
+        latex_parts.append(f"\\chicagoTitle{{{title}}}")
+        
+    elif is_mla:
+        # MLA doesn't use standard title pages/maketitle. It uses a flushleft block.
+        latex_parts.append("\\begin{document}")
+        latex_parts.append("\\begin{flushleft}")
+        latex_parts.append("Author Name\\\\")
+        latex_parts.append("Instructor Name\\\\")
+        latex_parts.append("Course Name\\\\")
+        latex_parts.append("Date")
+        latex_parts.append("\\end{flushleft}")
+        latex_parts.append("\\begin{center}")
+        latex_parts.append(f"\\textbf{{{title}}}")
+        latex_parts.append("\\end{center}")
+        
+    elif is_nature:
+        latex_parts.append("\\begin{document}")
+        latex_parts.append(f"\\title{{{title}}}")
+        latex_parts.append("\\author{Author Name}")
+        latex_parts.append("\\maketitle")
+        if abstract:
+            # Nature uses the custom abstract macro defined in your rules.py
+            latex_parts.append(f"\\natureabstract{{{abstract}}}")
+            
+    else: # Fallback generic layout
+        latex_parts.append("\\begin{document}")
+        latex_parts.append(f"\\title{{{title}}}")
+        latex_parts.append("\\maketitle")
+        if abstract:
+            latex_parts.append("\\begin{abstract}")
+            latex_parts.append(abstract)
+            latex_parts.append("\\end{abstract}")
+
+    # --- Document Body ---
+    body_data = structured_data.get("body", structured_data.get("body_sentences", []))
     
-    raw_title = structured_data.get("title", "")
-    if raw_title:
-        clean_title = re.sub(r'\\(?:section|subsection|chapter)\*?\{(.*?)\}', r'\1', raw_title)
-        latex_parts.append(f"\\title{{{clean_title}}}")
-        latex_parts.append("\\maketitle\n")
-    
-    if structured_data.get("abstract"):
-        latex_parts.append("\\begin{abstract}")
-        latex_parts.append(structured_data["abstract"])
-        latex_parts.append("\\end{abstract}\n")
-    
-    # 4. Inject Body Text (with linguistic fixes applied!)
-    for para in structured_data.get("body", []):
+    for para in body_data:
         clean_para = fix_linguistic_notation(para)
-        latex_parts.append(f"{clean_para}\n")
-        
+        # Quick heuristic to identify section headers
+        if len(clean_para.split()) <= 4 and not clean_para.endswith('.'):
+            if is_mla:
+                # MLA typically doesn't use standard numbered sections
+                latex_parts.append(f"\n\\noindent\\textbf{{{clean_para}}}") 
+            else:
+                latex_parts.append(f"\\section{{{clean_para}}}")
+        else:
+            latex_parts.append(clean_para)
+
     latex_parts.append("\\end{document}")
-    
     return "\n".join(latex_parts)
