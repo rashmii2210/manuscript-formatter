@@ -9,6 +9,7 @@ export default function ArtifactViewer() {
 
   const currentText = tab === 'original' ? activeDocument.original : activeDocument.transformed;
 
+  // ── API / export logic unchanged ────────────────────────────────
   const handleExportTex = () => {
     const blob = new Blob([currentText], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -22,89 +23,121 @@ export default function ArtifactViewer() {
   };
 
   const openInOverleaf = () => {
-    // Create a hidden form to seamlessly POST to Overleaf
     const form = document.createElement('form');
     form.method = 'POST';
     form.action = 'https://www.overleaf.com/docs';
-    form.target = '_blank'; // Opens in a new browser tab
-
-    // Overleaf expects the LaTeX code in a parameter called 'snip'
+    form.target = '_blank';
     const input = document.createElement('input');
     input.type = 'hidden';
     input.name = 'snip';
     input.value = currentText;
-
     form.appendChild(input);
     document.body.appendChild(form);
     form.submit();
     document.body.removeChild(form);
   };
+  // ── end logic ────────────────────────────────────────────────────
+
+  const scoreHigh = complianceScore >= 90;
 
   return (
-    <div className="flex flex-col w-full h-full shadow-inner shadow-gray-200 bg-[#fdfcf8]">
-      <div className="flex flex-col gap-3 p-4 border-b border-gray-200 bg-white/90 backdrop-blur z-20 sticky top-0 shadow-sm">
-        <div className="flex items-center justify-between">
-          <div className="flex gap-1 bg-gray-100 p-1 rounded-lg border border-gray-200" role="tablist">
+    <div className="flex flex-col w-full h-full bg-[#ede6d9]">
+
+      {/* ── Toolbar ── */}
+      <div className="sticky top-0 z-20 px-5 py-3 border-b border-[#d9cfc4] bg-[#f4ede3] flex items-center justify-between gap-3 flex-wrap shadow-sm">
+
+        {/* Tab toggles */}
+        <div className="flex bg-[#ede6d9] border border-[#d9cfc4] rounded-xl p-1 gap-1" role="tablist">
+          {[
+            { key: 'original', label: 'Original' },
+            { key: 'transformed', label: 'Transformed' },
+          ].map(t => (
             <button
+              key={t.key}
               role="tab"
-              aria-selected={tab === 'original'}
-              onClick={() => setTab('original')}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
-                tab === 'original' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'
+              aria-selected={tab === t.key}
+              onClick={() => setTab(t.key)}
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold tracking-wide transition-all ${
+                tab === t.key
+                  ? 'bg-white text-[#1a1208] shadow-sm'
+                  : 'text-[#7a6a58] hover:text-[#3d2f1e] hover:bg-[#f0e4d4]'
               }`}
             >
-              Original Document
+              {t.label}
             </button>
-            <button
-              role="tab"
-              aria-selected={tab === 'transformed'}
-              onClick={() => setTab('transformed')}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
-                tab === 'transformed' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'
-              }`}
-            >
-              Transformed Format
-            </button>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-lg shadow-sm">
-              <span className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Compliance Score</span>
-              <div className={`flex items-center justify-center h-6 w-10 rounded-md text-sm font-bold ${
-                complianceScore >= 90 ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
-              }`}>
+          ))}
+        </div>
+
+        {/* Right controls */}
+        <div className="flex items-center gap-3">
+
+          {/* Compliance score */}
+          <div className="flex items-center gap-2 bg-white border border-[#d9cfc4] px-3 py-1.5 rounded-xl shadow-sm">
+            <span className="text-[10px] font-bold text-[#7a6a58] uppercase tracking-widest">Score</span>
+            <div className="flex items-center gap-1.5">
+              {/* Arc progress */}
+              <svg width="26" height="26" viewBox="0 0 26 26">
+                <circle cx="13" cy="13" r="9" fill="none" stroke="#ede6d9" strokeWidth="3" />
+                <circle
+                  cx="13" cy="13" r="9"
+                  fill="none"
+                  stroke={scoreHigh ? '#2d7a3a' : '#b5622a'}
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeDasharray={`${(complianceScore / 100) * 56.5} 56.5`}
+                  transform="rotate(-90 13 13)"
+                  className="transition-all duration-700"
+                />
+              </svg>
+              <span className={`text-sm font-extrabold ${scoreHigh ? 'text-[#2d7a3a]' : 'text-[#b5622a]'}`}>
                 {complianceScore}
-              </div>
-            </div>
-            
-            <div className="flex gap-2">
-              <button 
-                onClick={openInOverleaf}
-                className="flex items-center gap-2 px-4 py-1.5 text-sm font-medium rounded-lg transition-colors shadow-sm bg-green-600 text-white hover:bg-green-700 focus:outline-none"
-                title="Open and render perfectly in Overleaf"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
-                Open in Overleaf
-              </button>
-              
-              <button 
-                onClick={handleExportTex}
-                className="flex items-center gap-2 px-4 py-1.5 text-sm font-medium rounded-lg transition-colors shadow-sm bg-gray-900 text-white hover:bg-gray-800 focus:outline-none"
-              >
-                Download .tex
-              </button>
+              </span>
             </div>
           </div>
+
+          {/* Open in Overleaf */}
+          <button
+            onClick={openInOverleaf}
+            title="Open and render perfectly in Overleaf"
+            className="flex items-center gap-2 px-4 py-1.5 text-xs font-bold rounded-xl bg-[#2d6a2d] text-white hover:bg-[#245724] transition-colors shadow-sm tracking-wide"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+            Open in Overleaf
+          </button>
+
+          {/* Download */}
+          <button
+            onClick={handleExportTex}
+            className="flex items-center gap-2 px-4 py-1.5 text-xs font-bold rounded-xl bg-[#2d1f10] text-white hover:bg-[#3d2f1e] transition-colors shadow-sm tracking-wide"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Download .tex
+          </button>
         </div>
       </div>
-      
-      <div className="flex-1 overflow-y-auto p-8 lg:p-12 selection:bg-blue-200 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full">
-        <div className="max-w-3xl mx-auto bg-white shadow-md border border-gray-200 min-h-[800px] p-12 lg:p-16 rounded-sm relative z-0">
-          <pre className="font-mono text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
-            {currentText}
-          </pre>
+
+      {/* ── Document area ── */}
+      <div className="flex-1 overflow-y-auto p-8 lg:p-12 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-[#d9cfc4] [&::-webkit-scrollbar-thumb]:rounded-full selection:bg-[#f0e4d4]">
+        <div className="max-w-3xl mx-auto bg-[#faf7f2] border border-[#d9cfc4] min-h-[800px] rounded-sm shadow-md relative overflow-hidden">
+
+          {/* Top accent bar — color shifts with tab */}
+          <div
+            className={`absolute top-0 left-0 right-0 h-[3px] transition-all duration-300 ${
+              tab === 'transformed'
+                ? 'bg-gradient-to-r from-transparent via-[#b5622a] to-transparent'
+                : 'bg-gradient-to-r from-transparent via-[#c4b8a8] to-transparent'
+            }`}
+          />
+
+          <div className="p-10 lg:p-14 pt-12">
+            <pre className="font-mono text-sm text-[#1a1208] whitespace-pre-wrap leading-relaxed">
+              {currentText}
+            </pre>
+          </div>
         </div>
       </div>
     </div>

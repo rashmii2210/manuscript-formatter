@@ -4,30 +4,35 @@ import ChatContainer from './ChatContainer';
 import ArtifactViewer from './ArtifactViewer';
 
 export default function AppLayout() {
-  // Subscribe only to activeDocument to control layout width shifts efficiently
   const activeDocument = useStore((state) => state.activeDocument);
 
   return (
-    // Main wrapper: full screen, disabled window scrolling, flex layout
-    <div className="flex h-screen w-full bg-gray-50 text-gray-900 overflow-hidden font-sans">
-      
-      {/* Chat Section: Takes 40% width when document is active, 100% (max-3xl) when inactive */}
-      <div 
-        className={`transition-all duration-500 ease-in-out flex flex-col ${
-          activeDocument ? 'w-2/5 border-r border-gray-200 bg-white' : 'w-full max-w-3xl mx-auto shadow-xl bg-white'
-        }`}
+    <div className="flex h-screen w-full overflow-hidden bg-[#f4ede3]">
+
+      {/* Chat Panel */}
+      <div
+        className={`flex flex-col transition-all duration-500 ease-in-out flex-shrink-0 ${
+          activeDocument
+            ? 'w-[38%] border-r border-[#d9cfc4]'
+            : 'w-full max-w-[700px] mx-auto shadow-lg'
+        } bg-[#f4ede3]`}
       >
-        {/* App Header */}
-        <div className="p-4 border-b border-gray-200 bg-white shadow-sm flex items-center justify-between z-10 relative">
-          <h1 className="font-semibold text-lg text-gray-800 tracking-tight">Agentic Formatter</h1>
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#d9cfc4] bg-[#f4ede3]">
+          <div className="flex items-center gap-3">
+            <div className="w-2 h-2 rounded-full bg-[#b5622a] shadow-[0_0_6px_#b5622a80]" />
+            <h1 className="text-sm font-bold tracking-widest uppercase text-[#1a1208]">
+              Agentic Formatter
+            </h1>
+          </div>
         </div>
-        
+
         <ChatContainer />
       </div>
-      
-      {/* Artifact Section: Renders and takes 60% width only when a document exists */}
+
+      {/* Artifact Panel */}
       {activeDocument && (
-        <div className="w-3/5 flex bg-white transition-all duration-500 ease-in-out">
+        <div className="flex-1 flex bg-[#ede6d9] transition-all duration-500 ease-in-out">
           <ArtifactViewer />
         </div>
       )}

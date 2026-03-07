@@ -1,3 +1,21 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: #f4ede3;
+  color: #1a1208;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: rgba(181, 98, 42, 0.15);
+  color: #1a1208;
+}
+
+textarea::-webkit-scrollbar { display: none; }

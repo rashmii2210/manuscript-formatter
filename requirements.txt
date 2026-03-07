@@ -1,2 +1,0 @@
-pip install flask pdfplumber spacy python-docx anthropic
-python -m spacy download en_core_web_sm
