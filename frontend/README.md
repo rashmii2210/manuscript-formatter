@@ -1,16 +1,100 @@
-# React + Vite
+# Manuscript Formatter
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Description
+Manuscript Formatter is a full-stack web application that allows users to upload documents (`.docx`, `.tex`, or `.txt`), parses their content and metadata, and automatically formats them into standard LaTeX manuscript styles. It evaluates the document's compliance with formatting rules, generates a compliance score, and provides explainable corrections.
 
-Currently, two official plugins are available:
+## Dependencies
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### Backend Dependencies
+* **Python 3.x**
+* **Flask** & **Flask-CORS**: For the REST API server.
+* **Werkzeug**: For secure file handling.
+* **spaCy**: For natural language processing and document parsing (`en_core_web_sm` model).
+* **Requests** & **HTTPX**: For handling API requests.
 
-## React Compiler
+### Frontend Dependencies
+* **Node.js** & **npm**
+* **React 19**: UI library.
+* **Vite**: Frontend build tool and development server.
+* **Tailwind CSS**: Utility-first CSS framework for styling.
+* **Zustand**: State management.
+* **KaTeX** & **react-latex-next**: For rendering LaTeX and mathematical equations in the browser.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Installation Steps
 
-## Expanding the ESLint configuration
+### Step 1: Backend Setup
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Open a terminal and navigate to the `backend` directory.
+
+#### Step 1.1: Create and activate a virtual environment
+```bash
+python -m venv venv
+
+# On Windows:
+venv\Scripts\activate
+
+# On macOS/Linux:
+source venv/bin/activate
+```
+
+#### Step 1.2: Install Python dependencies
+```bash
+pip install -r requirements.txt
+python -m spacy download en_core_web_sm
+```
+Troubleshooting spaCy: If the download fails, force-reinstall or use the direct tarball:
+
+```bash
+pip install --upgrade --force-reinstall spacy==3.7.2
+# OR
+pip install [https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1.tar.gz](https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1.tar.gz)
+```
+
+Optional fix for dependency conflicts:
+
+```bash
+pip install "httpx<0.28.0"
+python -m pip install --upgrade pip setuptools wheel
+```
+
+#### Step 1.3: Set Environment Variables
+```bash
+# On Windows PowerShell:
+$env:GEMINI_API_KEY="YOUR_API_KEY_HERE"
+
+# On macOS/Linux:
+export GEMINI_API_KEY="YOUR_API_KEY_HERE"
+```
+
+#### Step 1.4: Run the Backend Server
+```bash
+python app.py
+```
+
+The backend server will start on `http://127.0.0.1:5000`.
+
+### Step 2: Frontend Setup
+
+Open a new terminal and navigate to the frontend directory.
+
+#### Step 2.1: Install Node modules
+
+```bash
+npm install
+```
+
+#### Step 2.2: Start the Development Server
+
+```bash
+npm run dev
+```
+
+### Step 3: Running the Test Pipeline (Optional)
+
+To test the backend parsing and formatting pipeline without the UI, open another terminal, activate the virtual environment, and run:
+
+```bash
+venv\Scripts\activate
+pip install requests
+python test_pipeline.py
+```

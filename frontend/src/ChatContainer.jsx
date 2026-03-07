@@ -115,7 +115,7 @@ export default function ChatContainer() {
             </div>
             <div>
               <p className="text-sm font-semibold text-[#3d2f1e]">Upload a manuscript or type a prompt to begin.</p>
-              <p className="text-xs text-[#a89880] mt-1">Supports .tex, .docx, .pdf, .txt</p>
+              <p className="text-xs text-[#a89880] mt-1">Supports .tex and .docx</p>
             </div>
           </div>
         )}
