@@ -7,6 +7,18 @@ def get_base_rules(style):
         "APA": {
             "style_name": "APA",
             "preamble": "\\documentclass[man]{apa7}\n\\usepackage[american]{babel}\n\\usepackage{csquotes}"
+        },
+        "chicago": {
+            "preamble": "\\documentclass[12pt]{article}\n\\usepackage[margin=1in]{geometry}\n\\usepackage{setspace}\n\\doublespacing\n\\usepackage[authordate,backend=biber]{biblatex-chicago}",
+            "macros": "\\newcommand{\\chicagoTitle}[1]{\\begin{center}\\vspace*{2in}{\\Large \\bfseries #1}\\end{center}\\vspace{1in}}"
+        },
+        "mla": {
+            "preamble": "\\documentclass[12pt,letterpaper]{article}\n\\usepackage[margin=1in]{geometry}\n\\usepackage{setspace}\n\\doublespacing\n\\usepackage{mathptmx} % Times New Roman font\n\\usepackage{fancyhdr}\n\\pagestyle{fancy}\n\\fancyhf{}\n\\renewcommand{\\headrulewidth}{0pt}\n\\usepackage[style=mla,backend=biber]{biblatex}",
+            "macros": "% Note: Gemini will generate specific macros for the MLA left-aligned name block (Name, Instructor, Course, Date) and top-right header (Last Name + Page Number)."
+        },
+        "nature": {
+            "preamble": "\\documentclass[12pt]{article}\n\\usepackage[margin=1in]{geometry}\n\\usepackage{setspace}\n\\doublespacing\n\\usepackage[superscript,nomove]{cite} % Nature uses superscript citations\n\\usepackage{lineno} % Nature requires line numbers for review\n\\linenumbers\n\\bibliographystyle{naturemag}",
+            "macros": "\\newcommand{\\natureabstract}[1]{\\begin{flushleft}\\textbf{#1}\\end{flushleft}\\vspace{0.5cm}}"
         }
     }
-    return rulesets.get(style.upper(), {"style_name": style, "preamble": "\\documentclass{article}"})
+    return rulesets.get(style.upper(), {"style_name": style, "preamble": "\\documentclass{article}", "macros" : ""})
