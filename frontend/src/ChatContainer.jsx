@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from './store';
 import { uploadFile, formatText } from './api';
 
 export default function ChatContainer() {
   const [input, setInput] = useState('');
-  
+  const messagesEndRef = useRef(null);
+  const textareaRef = useRef(null);
+
   const { 
     chatHistory, 
     addMessage, 
@@ -16,6 +18,19 @@ export default function ChatContainer() {
     setSelectedStyle
   } = useStore();
 
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatHistory, isProcessing]);
+
+  // Auto-resize textarea
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 128) + 'px';
+    }
+  }, [input]);
+
+  // ── API logic unchanged ──────────────────────────────────────────
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -82,48 +97,87 @@ export default function ChatContainer() {
       setIsProcessing(false);
     }
   };
+  // ── end API logic ────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col w-full h-full bg-white overflow-hidden">
-      <div className="flex-1 overflow-y-auto p-4 space-y-6 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-thumb]:rounded-full">
+    <div className="flex flex-col w-full h-full overflow-hidden bg-[#f4ede3]">
+
+      {/* ── Message History ── */}
+      <div className="flex-1 overflow-y-auto px-5 py-6 space-y-4 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-[#d9cfc4] [&::-webkit-scrollbar-thumb]:rounded-full">
+
+        {/* Empty state */}
         {chatHistory.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-4">
-            <p>Upload a manuscript or type a prompt to begin.</p>
+          <div className="flex flex-col items-center justify-center h-full gap-4 text-center">
+            <div className="w-12 h-12 rounded-2xl bg-[#f0e4d4] border border-[#c4b8a8] flex items-center justify-center">
+              <svg className="w-6 h-6 text-[#b5622a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-[#3d2f1e]">Upload a manuscript or type a prompt to begin.</p>
+              <p className="text-xs text-[#a89880] mt-1">Supports .tex, .docx, .pdf, .txt</p>
+            </div>
           </div>
         )}
-        
+
+        {/* Messages */}
         {chatHistory.map((msg, i) => (
-          <div key={i} className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[85%] p-3 rounded-2xl ${
-              msg.role === 'user' 
-                ? 'bg-blue-600 text-white rounded-br-none shadow-sm' 
-                : 'bg-gray-100 text-gray-800 rounded-bl-none shadow-sm'
-            }`}>
+          <div
+            key={i}
+            className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+          >
+            {/* Agent avatar */}
+            {msg.role === 'agent' && (
+              <div className="w-7 h-7 rounded-lg bg-[#f0e4d4] border border-[#c4b8a8] flex items-center justify-center flex-shrink-0 mr-2 mt-0.5">
+                <div className="w-2 h-2 rounded-full bg-[#b5622a]" />
+              </div>
+            )}
+            <div
+              className={`max-w-[80%] px-4 py-2.5 text-sm leading-relaxed font-medium ${
+                msg.role === 'user'
+                  ? 'bg-[#2d1f10] text-[#f9f3ea] rounded-2xl rounded-br-sm'
+                  : 'bg-[#ede6d9] text-[#3d2f1e] rounded-2xl rounded-bl-sm border border-[#d9cfc4]'
+              }`}
+            >
               {msg.content}
             </div>
           </div>
         ))}
-        
+
+        {/* Typing indicator */}
         {isProcessing && (
-          <div className="flex w-full justify-start">
-            <div className="max-w-[85%] p-4 rounded-2xl bg-gray-100 rounded-bl-none flex gap-1.5 items-center shadow-sm">
-              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+          <div className="flex w-full justify-start items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-[#f0e4d4] border border-[#c4b8a8] flex items-center justify-center flex-shrink-0">
+              <div className="w-2 h-2 rounded-full bg-[#b5622a]" />
+            </div>
+            <div className="px-4 py-3 rounded-2xl rounded-bl-sm bg-[#ede6d9] border border-[#d9cfc4] flex gap-1.5 items-center">
+              <div className="w-1.5 h-1.5 bg-[#b5622a] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+              <div className="w-1.5 h-1.5 bg-[#b5622a] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+              <div className="w-1.5 h-1.5 bg-[#b5622a] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
             </div>
           </div>
         )}
+
+        <div ref={messagesEndRef} />
       </div>
-      
-      <div className="p-4 bg-white border-t border-gray-100 flex flex-col gap-2 z-10 relative">
+
+      {/* ── Input Area ── */}
+      <div className="px-4 pb-4 pt-3 border-t border-[#d9cfc4] bg-[#f4ede3] flex flex-col gap-2">
+
+        {/* Style dropdown */}
         <div className="flex items-center gap-2">
-          <label htmlFor="style-select" className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Target Style:</label>
-          <select 
+          <label
+            htmlFor="style-select"
+            className="text-[10px] font-bold text-[#7a6a58] uppercase tracking-widest flex-shrink-0"
+          >
+            Target Style:
+          </label>
+          <select
             id="style-select"
             value={selectedStyle}
             onChange={(e) => setSelectedStyle(e.target.value)}
             disabled={isProcessing}
-            className="text-sm bg-gray-50 border border-gray-200 rounded-md px-2 py-1 text-gray-700 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 disabled:opacity-50 transition-all"
+            className="text-xs font-semibold bg-white border border-[#c4b8a8] rounded-lg px-3 py-1.5 text-[#1a1208] outline-none focus:border-[#b5622a] focus:ring-2 focus:ring-[#f0e4d4] disabled:opacity-50 transition-all cursor-pointer"
           >
             <option value="APA">APA 7th Edition</option>
             <option value="IEEE">IEEE</option>
@@ -133,27 +187,42 @@ export default function ChatContainer() {
           </select>
         </div>
 
-        <form onSubmit={handleSubmit} className={`flex items-end gap-2 bg-gray-50 p-2 rounded-2xl border border-gray-300 transition-all ${isProcessing ? 'opacity-70' : 'focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-400/20'}`}>
-          <label aria-label="Upload File" className="p-2 text-gray-400 hover:text-gray-600 cursor-pointer rounded-full hover:bg-gray-200 transition-colors mb-1">
-            <input 
-              type="file" 
-              className="hidden" 
-              accept=".tex,.docx,.pdf,.txt" 
-              onChange={handleFileUpload} 
+        {/* Input form */}
+        <form
+          onSubmit={handleSubmit}
+          className={`flex items-end gap-2 bg-white rounded-2xl border transition-all px-3 py-2 shadow-sm ${
+            isProcessing
+              ? 'opacity-70 border-[#d9cfc4]'
+              : 'border-[#c4b8a8] focus-within:border-[#b5622a] focus-within:ring-2 focus-within:ring-[#f0e4d4]'
+          }`}
+        >
+          {/* File upload */}
+          <label
+            aria-label="Upload File"
+            className="p-1.5 text-[#a89880] hover:text-[#b5622a] hover:bg-[#f0e4d4] cursor-pointer rounded-lg transition-colors mb-0.5 flex-shrink-0"
+          >
+            <input
+              type="file"
+              className="hidden"
+              accept=".tex,.docx,.pdf,.txt"
+              onChange={handleFileUpload}
               disabled={isProcessing}
             />
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
             </svg>
           </label>
-          
+
+          {/* Textarea */}
           <textarea
+            ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             disabled={isProcessing}
-            className="flex-1 max-h-32 min-h-[40px] bg-transparent outline-none px-2 py-2 resize-none text-gray-700 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full"
+            className="flex-1 bg-transparent outline-none px-1 py-1.5 resize-none text-[#1a1208] text-sm font-medium placeholder-[#a89880] leading-relaxed [&::-webkit-scrollbar]:hidden"
             placeholder="Upload a document or type instructions..."
             rows={1}
+            style={{ maxHeight: 128 }}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -161,13 +230,21 @@ export default function ChatContainer() {
               }
             }}
           />
-          
-          <button type="submit" aria-label="Send Message" disabled={isProcessing || !input.trim()} className="p-2 mb-1 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed transition-colors">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+
+          {/* Submit button */}
+          <button
+            type="submit"
+            aria-label="Send Message"
+            disabled={isProcessing || !input.trim()}
+            className="mb-0.5 p-2 rounded-xl bg-[#2d1f10] text-white hover:bg-[#3d2f1e] disabled:bg-[#d9cfc4] disabled:text-[#a89880] disabled:cursor-not-allowed transition-all flex-shrink-0"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" />
             </svg>
           </button>
         </form>
+
+        <p className="text-[10px] text-[#c4b8a8] text-center tracking-wide">shift + enter for newline</p>
       </div>
     </div>
   );
