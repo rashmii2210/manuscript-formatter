@@ -13,10 +13,12 @@ def get_formatting_rules(target_style, structured_data):
     I need formatting rules for {target_style} style.
     Here is a summary of the document structure: {list(structured_data.keys())}
     
-    Provide a JSON response with:
-    1. 'preamble': Required LaTeX packages and documentclass setup.
-    2. 'macros': Any specific custom commands needed.
-    3. 'environment_rules': How to wrap abstract, body, and references.
+    Provide a JSON response with exactly these keys:
+    1. 'preamble': A single string containing the required LaTeX packages and documentclass setup.
+    2. 'macros': A single string containing any specific custom commands needed.
+    3. 'environment_rules': A single string explaining how to wrap abstract, body, and references.
+    
+    CRITICAL: All values in the JSON must be flat strings. Do not nest objects or arrays.
     Output ONLY valid JSON without formatting blocks if possible.
     """
 

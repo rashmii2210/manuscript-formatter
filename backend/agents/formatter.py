@@ -1,21 +1,25 @@
 import re
 
 def fix_linguistic_notation(text):
-    # 1. Fix missing $ for subscripts (e.g., John_i -> $John_i$, ngii_i -> $ngii_i$)
-    # This matches any word immediately followed by an underscore and an index
     text = re.sub(r'(?<!\$)\b([a-zA-Z]+_[a-zA-Z0-9]+)\b(?!\$)', r'$\1$', text)
-    
-    # 2. Clean up misplaced tabs and spaces around alignment ampersands
-    # This enforces clean, readable tab spacing in the raw LaTeX code
     text = re.sub(r'[ \t]*&[ \t]*', '\t&\t', text)
-    
     return text
 
 def build_latex(rules, structured_data):
     latex_parts = []
     
     # 1. Add Preamble
-    latex_parts.append(rules.get("preamble", "\\documentclass{article}"))
+    preamble = rules.get("preamble", "\\documentclass{article}")
+    
+    # SAFEGUARD: Unpack if the AI generated a nested dict or list instead of a string
+    if isinstance(preamble, dict):
+        preamble = "\n".join(str(v) for v in preamble.values())
+    elif isinstance(preamble, list):
+        preamble = "\n".join(str(v) for v in preamble)
+    else:
+        preamble = str(preamble)
+        
+    latex_parts.append(preamble)
     
     # 2. Re-inject Custom Packages
     custom_packages = structured_data.get("custom_packages", [])
